@@ -44,15 +44,39 @@ void Slider::draw(SDL_Renderer *renderer) const
     // Knob border
     SDL_SetRenderDrawColor(renderer, 150, 150, 170, 255);
     SDL_RenderDrawRect(renderer, &knob);
+
+    // Label area (üst kısım)
+    SDL_Rect labelArea = {x - 5, y - 25, w + 10, 15};
+    SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
+    SDL_RenderFillRect(renderer, &labelArea);
+
+    // Value indicator (değer göstergesi - basit pixel art)
+    SDL_Rect valueArea = {x + w - 40, y - 25, 35, 15};
+    SDL_SetRenderDrawColor(renderer, 25, 25, 35, 255);
+    SDL_RenderFillRect(renderer, &valueArea);
+
+    // Değer çubuğu
+    int valueBarWidth = (value - min) * 30 / (max - min);
+    SDL_Rect valueBar = {x + w - 38, y - 22, valueBarWidth, 3};
+    SDL_SetRenderDrawColor(renderer, 100, 255, 150, 255);
+    SDL_RenderFillRect(renderer, &valueBar);
+
+    // Değer track
+    SDL_Rect valueTrack = {x + w - 38 + valueBarWidth, y - 22, 30 - valueBarWidth, 3};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &valueTrack);
 }
 
 bool Slider::handleEvent(const SDL_Event &event)
 {
+    static Slider *activeSlider = nullptr; // Global aktif slider takibi
+
     if (event.type == SDL_MOUSEBUTTONDOWN)
     {
         int mx = event.button.x, my = event.button.y;
         if (mx >= x && mx < x + w && my >= y && my < y + h)
         {
+            activeSlider = this; // Bu slider'ı aktif yap
             dragging = true;
             // Mouse pozisyonuna göre hemen değeri güncelle
             int newValue = min + (mx - x) * (max - min) / w;
@@ -66,23 +90,28 @@ bool Slider::handleEvent(const SDL_Event &event)
     }
     else if (event.type == SDL_MOUSEBUTTONUP)
     {
-        // Sadece bu slider dragging durumundaysa kapat
-        if (dragging)
+        // Sadece bu slider aktif ve dragging durumundaysa kapat
+        if (activeSlider == this && dragging)
         {
             dragging = false;
+            activeSlider = nullptr; // Aktif slider'ı temizle
             return true;
         }
     }
-    else if (event.type == SDL_MOUSEMOTION && dragging)
+    else if (event.type == SDL_MOUSEMOTION)
     {
-        int mx = event.motion.x;
-        int newValue = min + (mx - x) * (max - min) / w;
-        if (newValue < min)
-            newValue = min;
-        if (newValue > max)
-            newValue = max;
-        value = newValue;
-        return true;
+        // Sadece bu slider aktif durumda ise hareket takibi yap
+        if (activeSlider == this && dragging)
+        {
+            int mx = event.motion.x;
+            int newValue = min + (mx - x) * (max - min) / w;
+            if (newValue < min)
+                newValue = min;
+            if (newValue > max)
+                newValue = max;
+            value = newValue;
+            return true;
+        }
     }
     return false;
 }

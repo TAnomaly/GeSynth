@@ -32,32 +32,65 @@ int audioCallback(const void *, void *outputBuffer, unsigned long framesPerBuffe
     return paContinue;
 }
 
-void drawValueIndicator(SDL_Renderer *renderer, int x, int y, int w, int h,
-                        const std::string &label, float value, const std::string &unit)
+void drawControlLabel(SDL_Renderer *renderer, int x, int y, const std::string &label)
 {
-    // Değer göstergesi için arka plan
-    SDL_Rect bgRect = {x, y, w, h};
-    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
-    SDL_RenderFillRect(renderer, &bgRect);
+    // Label arka planı
+    int labelWidth = label.length() * 8 + 10;
+    SDL_Rect labelBg = {x, y, labelWidth, 20};
+    SDL_SetRenderDrawColor(renderer, 30, 30, 40, 255);
+    SDL_RenderFillRect(renderer, &labelBg);
     SDL_SetRenderDrawColor(renderer, 100, 100, 120, 255);
-    SDL_RenderDrawRect(renderer, &bgRect);
+    SDL_RenderDrawRect(renderer, &labelBg);
 
-    // Simple text simulation with rectangles (pixel art style)
-    // Frequency value as small bars
-    int barCount = 10;
-    int normalizedValue = (int)(value / 100.0f * barCount); // Normalize to bar count
-    for (int i = 0; i < barCount; i++)
+    // Basit text simulasyonu (pixel art style)
+    // Her harf için küçük rectangle'lar
+    SDL_SetRenderDrawColor(renderer, 200, 200, 220, 255);
+    for (int i = 0; i < (int)label.length() && i < 20; i++)
     {
-        SDL_Rect bar = {x + 5 + i * 3, y + h - 8, 2, 6};
-        if (i < normalizedValue)
+        char c = label[i];
+        int charX = x + 5 + i * 8;
+
+        // Basit karakter patterns
+        if (c >= 'A' && c <= 'Z')
         {
-            SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
+            // Büyük harf - 3 nokta dikey
+            SDL_Rect dots[3] = {
+                {charX, y + 5, 2, 2},
+                {charX, y + 8, 2, 2},
+                {charX, y + 11, 2, 2}};
+            for (int j = 0; j < 3; j++)
+            {
+                SDL_RenderFillRect(renderer, &dots[j]);
+            }
+        }
+        else if (c >= 'a' && c <= 'z')
+        {
+            // Küçük harf - 2 nokta dikey
+            SDL_Rect dots[2] = {
+                {charX, y + 7, 2, 2},
+                {charX, y + 10, 2, 2}};
+            for (int j = 0; j < 2; j++)
+            {
+                SDL_RenderFillRect(renderer, &dots[j]);
+            }
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            // Sayı - tek nokta
+            SDL_Rect dot = {charX, y + 8, 2, 2};
+            SDL_RenderFillRect(renderer, &dot);
+        }
+        else if (c == ' ')
+        {
+            // Boşluk - hiçbir şey çizme
+            continue;
         }
         else
         {
-            SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+            // Diğer karakterler - çizgi
+            SDL_Rect line = {charX, y + 9, 4, 1};
+            SDL_RenderFillRect(renderer, &line);
         }
-        SDL_RenderFillRect(renderer, &bar);
     }
 }
 
@@ -65,29 +98,31 @@ int main(int argc, char *argv[])
 {
     Envelope env;
     Sequencer seq;
-    // Daha organize layout
+    // Daha organize layout - label'lar için yer bırakıyoruz
     int margin = 20;
-    int sliderWidth = 180;
+    int topMargin = 40; // Label'lar için üst boşluk
+    int sliderWidth = 160;
     int sliderHeight = 35;
+    int spacing = 55; // Slider'lar arası boşluk
 
     // Sol sütun - Ana kontroller
-    Slider volumeSlider(margin, margin, sliderWidth, sliderHeight, 0, 100, 50, "Volume");
-    Slider filterSlider(margin, margin + 50, sliderWidth, sliderHeight, 100, 5000, 1000, "Filter");
-    WaveSelector waveSelector(margin + sliderWidth + 20, margin, 100, sliderHeight * 2 + 15);
+    Slider volumeSlider(margin, topMargin, sliderWidth, sliderHeight, 0, 100, 50, "Volume");
+    Slider filterSlider(margin, topMargin + spacing, sliderWidth, sliderHeight, 100, 5000, 1000, "Filter");
+    WaveSelector waveSelector(margin + sliderWidth + 20, topMargin, 100, spacing + sliderHeight);
 
     // Orta sütun - LFO kontrolleri
     int midCol = WINDOW_WIDTH / 2 - 80;
-    Slider lfoRateSlider(midCol, margin, 160, sliderHeight, 1, 20, 4, "LFO Rate");
-    Slider lfoDepthSlider(midCol, margin + 50, 160, sliderHeight, 0, 100, 30, "LFO Depth");
-    WaveSelector lfoWaveSelector(midCol, margin + 100, 80, sliderHeight);
-    LFOTargetSelector lfoTargetSelector(midCol + 90, margin + 100, 70, sliderHeight);
+    Slider lfoRateSlider(midCol, topMargin, sliderWidth, sliderHeight, 1, 20, 4, "LFO Rate");
+    Slider lfoDepthSlider(midCol, topMargin + spacing, sliderWidth, sliderHeight, 0, 100, 30, "LFO Depth");
+    WaveSelector lfoWaveSelector(midCol, topMargin + spacing * 2, 80, sliderHeight);
+    LFOTargetSelector lfoTargetSelector(midCol + 90, topMargin + spacing * 2, 70, sliderHeight);
 
     // Sağ sütun - ADSR envelope kontrolleri
-    int rightCol = WINDOW_WIDTH - 200;
-    Slider attackSlider(rightCol, margin, 160, sliderHeight, 1, 500, 10, "Attack");
-    Slider decaySlider(rightCol, margin + 50, 160, sliderHeight, 1, 500, 100, "Decay");
-    Slider sustainSlider(rightCol, margin + 100, 160, sliderHeight, 0, 100, 80, "Sustain");
-    Slider releaseSlider(rightCol, margin + 150, 160, sliderHeight, 1, 500, 200, "Release");
+    int rightCol = WINDOW_WIDTH - 180;
+    Slider attackSlider(rightCol, topMargin, sliderWidth, sliderHeight, 1, 500, 10, "Attack");
+    Slider decaySlider(rightCol, topMargin + spacing, sliderWidth, sliderHeight, 1, 500, 100, "Decay");
+    Slider sustainSlider(rightCol, topMargin + spacing * 2, sliderWidth, sliderHeight, 0, 100, 80, "Sustain");
+    Slider releaseSlider(rightCol, topMargin + spacing * 3, sliderWidth, sliderHeight, 1, 500, 200, "Release");
 
     PaError err = Pa_Initialize();
     if (err != paNoError)
@@ -167,9 +202,9 @@ int main(int argc, char *argv[])
 
     // Piyano konumu - Alt kısımda, daha büyük
     int pianoX = margin;
-    int pianoY = WINDOW_HEIGHT - 80;
+    int pianoY = WINDOW_HEIGHT - 70;
     int pianoWidth = WINDOW_WIDTH - (margin * 2);
-    int pianoHeight = 60;
+    int pianoHeight = 50;
     Piano piano;
 
     std::cout << "Sağ/Sol ok tuşları ile frekansı değiştir. ESC ile çık.\n";
@@ -291,7 +326,7 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
         // Waveform visualization area
-        int waveAreaY = 120;
+        int waveAreaY = 180; // Label'lar için daha fazla yer bırakıyoruz
         int waveAreaHeight = pianoY - waveAreaY - 10;
 
         // Waveform background
@@ -307,6 +342,21 @@ int main(int argc, char *argv[])
                        waveBackground.w - 10, waveBackground.h - 10);
 
         // Frekans barını kaldırıyoruz, gerekirse daha sonra ekleriz
+
+        // Control labels çiz
+        drawControlLabel(renderer, volumeSlider.x, volumeSlider.y - 25, "VOLUME");
+        drawControlLabel(renderer, filterSlider.x, filterSlider.y - 25, "FILTER");
+        drawControlLabel(renderer, waveSelector.x, waveSelector.y - 25, "WAVE");
+
+        drawControlLabel(renderer, lfoRateSlider.x, lfoRateSlider.y - 25, "LFO RATE");
+        drawControlLabel(renderer, lfoDepthSlider.x, lfoDepthSlider.y - 25, "LFO DEPTH");
+        drawControlLabel(renderer, lfoWaveSelector.x, lfoWaveSelector.y - 25, "LFO WAVE");
+        drawControlLabel(renderer, lfoTargetSelector.x, lfoTargetSelector.y - 25, "LFO TARGET");
+
+        drawControlLabel(renderer, attackSlider.x, attackSlider.y - 25, "ATTACK");
+        drawControlLabel(renderer, decaySlider.x, decaySlider.y - 25, "DECAY");
+        drawControlLabel(renderer, sustainSlider.x, sustainSlider.y - 25, "SUSTAIN");
+        drawControlLabel(renderer, releaseSlider.x, releaseSlider.y - 25, "RELEASE");
 
         // UI kontrollerini çiz
         volumeSlider.draw(renderer);
