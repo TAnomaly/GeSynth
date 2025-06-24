@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <string>
 #include "WaveForm.hpp"
+#include "LFO.hpp"
 
 class Slider
 {
@@ -26,4 +27,17 @@ public:
     void draw(SDL_Renderer *renderer) const;
     bool handleEvent(const SDL_Event &event);
     void nextWave();
+};
+
+class LFOTargetSelector
+{
+public:
+    int x, y, w, h;
+    LFOTarget currentTarget;
+    std::string targetNames[4];
+
+    LFOTargetSelector(int x_, int y_, int w_, int h_);
+    void draw(SDL_Renderer *renderer) const;
+    bool handleEvent(const SDL_Event &event);
+    void nextTarget();
 };

@@ -197,3 +197,105 @@ void WaveSelector::nextWave()
 {
     currentWave = static_cast<WaveForm::Type>((static_cast<int>(currentWave) + 1) % 4);
 }
+
+// LFOTargetSelector implementation
+LFOTargetSelector::LFOTargetSelector(int x_, int y_, int w_, int h_)
+    : x(x_), y(y_), w(w_), h(h_), currentTarget(LFOTarget::None)
+{
+    targetNames[0] = "OFF";
+    targetNames[1] = "PITCH";
+    targetNames[2] = "AMP";
+    targetNames[3] = "FILTER";
+}
+
+void LFOTargetSelector::draw(SDL_Renderer *renderer) const
+{
+    // Modern button background
+    SDL_Rect outerRect = {x - 2, y - 2, w + 4, h + 4};
+    SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
+    SDL_RenderFillRect(renderer, &outerRect);
+
+    SDL_Rect buttonRect = {x, y, w, h};
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderFillRect(renderer, &buttonRect);
+
+    // Target specific colors
+    SDL_Rect innerRect = {x + 3, y + 3, w - 6, h - 6};
+
+    switch (currentTarget)
+    {
+    case LFOTarget::None:
+        SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
+        break;
+    case LFOTarget::Pitch:
+        SDL_SetRenderDrawColor(renderer, 255, 150, 100, 255); // Orange for pitch
+        break;
+    case LFOTarget::Amplitude:
+        SDL_SetRenderDrawColor(renderer, 100, 255, 150, 255); // Green for amplitude
+        break;
+    case LFOTarget::Filter:
+        SDL_SetRenderDrawColor(renderer, 150, 100, 255, 255); // Purple for filter
+        break;
+    }
+    SDL_RenderFillRect(renderer, &innerRect);
+
+    // Border highlight
+    SDL_SetRenderDrawColor(renderer, 150, 150, 180, 255);
+    SDL_RenderDrawRect(renderer, &buttonRect);
+
+    // Simple indicator pattern based on target
+    SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
+    int centerX = x + w / 2;
+    int centerY = y + h / 2;
+
+    switch (currentTarget)
+    {
+    case LFOTarget::Pitch:
+        // Wavy line for pitch modulation
+        for (int i = 0; i < 3; i++)
+        {
+            SDL_RenderDrawLine(renderer, x + 10 + i * 8, centerY - 3, x + 14 + i * 8, centerY + 3);
+            SDL_RenderDrawLine(renderer, x + 14 + i * 8, centerY + 3, x + 18 + i * 8, centerY - 3);
+        }
+        break;
+    case LFOTarget::Amplitude:
+        // Amplitude bars
+        for (int i = 0; i < 5; i++)
+        {
+            int height = (i == 2) ? 10 : (abs(i - 2) == 1) ? 6
+                                                           : 3;
+            SDL_Rect bar = {x + 8 + i * 6, centerY - height / 2, 3, height};
+            SDL_RenderFillRect(renderer, &bar);
+        }
+        break;
+    case LFOTarget::Filter:
+        // Filter sweep pattern
+        SDL_RenderDrawLine(renderer, x + 8, centerY + 5, x + w - 8, centerY - 5);
+        SDL_RenderDrawLine(renderer, x + 8, centerY, x + w - 8, centerY);
+        break;
+    case LFOTarget::None:
+        // X pattern for off
+        SDL_RenderDrawLine(renderer, x + 8, y + 8, x + w - 8, y + h - 8);
+        SDL_RenderDrawLine(renderer, x + w - 8, y + 8, x + 8, y + h - 8);
+        break;
+    }
+}
+
+bool LFOTargetSelector::handleEvent(const SDL_Event &event)
+{
+    if (event.type == SDL_MOUSEBUTTONDOWN)
+    {
+        int mx = event.button.x, my = event.button.y;
+        if (mx >= x && mx < x + w && my >= y && my < y + h)
+        {
+            nextTarget();
+            return true;
+        }
+    }
+    return false;
+}
+
+void LFOTargetSelector::nextTarget()
+{
+    currentTarget = static_cast<LFOTarget>((static_cast<int>(currentTarget) + 1) % 4);
+}

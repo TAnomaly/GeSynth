@@ -11,6 +11,7 @@
 #include "UI.hpp"
 #include "Synth.hpp"
 #include "Filter.hpp"
+#include "LFO.hpp"
 
 #define SAMPLE_RATE 44100
 #define TWO_PI (3.14159f * 2)
@@ -73,6 +74,13 @@ int main(int argc, char *argv[])
     Slider volumeSlider(margin, margin, sliderWidth, sliderHeight, 0, 100, 50, "Volume");
     Slider filterSlider(margin, margin + 50, sliderWidth, sliderHeight, 100, 5000, 1000, "Filter");
     WaveSelector waveSelector(margin + sliderWidth + 20, margin, 100, sliderHeight * 2 + 15);
+
+    // Orta sütun - LFO kontrolleri
+    int midCol = WINDOW_WIDTH / 2 - 80;
+    Slider lfoRateSlider(midCol, margin, 160, sliderHeight, 1, 20, 4, "LFO Rate");
+    Slider lfoDepthSlider(midCol, margin + 50, 160, sliderHeight, 0, 100, 30, "LFO Depth");
+    WaveSelector lfoWaveSelector(midCol, margin + 100, 80, sliderHeight);
+    LFOTargetSelector lfoTargetSelector(midCol + 90, margin + 100, 70, sliderHeight);
 
     // Sağ sütun - ADSR envelope kontrolleri
     int rightCol = WINDOW_WIDTH - 200;
@@ -180,17 +188,19 @@ int main(int argc, char *argv[])
                     running = false;
                     break;
                 case SDLK_RIGHT:
-                    synth.frequency += 10.0f;
-                    if (synth.frequency > 2000.0f)
-                        synth.frequency = 2000.0f;
-                    std::cout << "Frekans: " << synth.frequency << " Hz\n";
+                    synth.baseFrequency += 10.0f;
+                    if (synth.baseFrequency > 2000.0f)
+                        synth.baseFrequency = 2000.0f;
+                    synth.setFrequency(synth.baseFrequency);
+                    std::cout << "Frekans: " << synth.baseFrequency << " Hz\n";
                     synth.env.noteOn();
                     break;
                 case SDLK_LEFT:
-                    synth.frequency -= 10.0f;
-                    if (synth.frequency < 100.0f)
-                        synth.frequency = 100.0f;
-                    std::cout << "Frekans: " << synth.frequency << " Hz\n";
+                    synth.baseFrequency -= 10.0f;
+                    if (synth.baseFrequency < 100.0f)
+                        synth.baseFrequency = 100.0f;
+                    synth.setFrequency(synth.baseFrequency);
+                    std::cout << "Frekans: " << synth.baseFrequency << " Hz\n";
                     synth.env.noteOn();
                     break;
                 default:
@@ -212,8 +222,8 @@ int main(int argc, char *argv[])
                     activeKey = key;
                     if (noteFreqs[key] > 0.0f)
                     {
-                        synth.frequency = noteFreqs[key];
-                        std::cout << "Nota: " << key << " Frekans: " << synth.frequency << " Hz\n";
+                        synth.setFrequency(noteFreqs[key]);
+                        std::cout << "Nota: " << key << " Frekans: " << synth.baseFrequency << " Hz\n";
                         synth.env.noteOn();
                     }
                 }
@@ -221,6 +231,14 @@ int main(int argc, char *argv[])
                 volumeSlider.handleEvent(event);
                 filterSlider.handleEvent(event);
                 waveSelector.handleEvent(event);
+
+                // LFO kontrolleri
+                lfoRateSlider.handleEvent(event);
+                lfoDepthSlider.handleEvent(event);
+                lfoWaveSelector.handleEvent(event);
+                lfoTargetSelector.handleEvent(event);
+
+                // ADSR kontrolleri
                 attackSlider.handleEvent(event);
                 decaySlider.handleEvent(event);
                 sustainSlider.handleEvent(event);
@@ -235,6 +253,8 @@ int main(int argc, char *argv[])
             {
                 volumeSlider.handleEvent(event);
                 filterSlider.handleEvent(event);
+                lfoRateSlider.handleEvent(event);
+                lfoDepthSlider.handleEvent(event);
                 attackSlider.handleEvent(event);
                 decaySlider.handleEvent(event);
                 sustainSlider.handleEvent(event);
@@ -253,7 +273,18 @@ int main(int argc, char *argv[])
         synth.env.release = releaseSlider.value / 1000.0f;
 
         // Filter parametrelerini güncelle
-        synth.filter.setCutoff(filterSlider.value);
+        synth.baseCutoff = filterSlider.value;
+        if (synth.lfo.target != LFOTarget::Filter)
+        {
+            synth.filter.setCutoff(filterSlider.value);
+        }
+
+        // LFO parametrelerini güncelle
+        synth.lfo.rate = lfoRateSlider.value;
+        synth.lfo.depth = lfoDepthSlider.value / 100.0f;
+        synth.lfo.waveform = lfoWaveSelector.currentWave;
+        synth.lfo.target = lfoTargetSelector.currentTarget;
+        synth.lfo.enabled = (synth.lfo.target != LFOTarget::None);
 
         // Modern gradient background
         SDL_SetRenderDrawColor(renderer, 25, 25, 35, 255);
@@ -271,7 +302,7 @@ int main(int argc, char *argv[])
         SDL_RenderDrawRect(renderer, &waveBackground);
 
         // Dalga şekli çiz (ortada)
-        WaveForm::draw(renderer, synth.waveType, synth.frequency, displayPhase,
+        WaveForm::draw(renderer, synth.waveType, synth.baseFrequency, displayPhase,
                        waveBackground.x + 5, waveBackground.y + 5,
                        waveBackground.w - 10, waveBackground.h - 10);
 
@@ -281,6 +312,14 @@ int main(int argc, char *argv[])
         volumeSlider.draw(renderer);
         filterSlider.draw(renderer);
         waveSelector.draw(renderer);
+
+        // LFO kontrollerini çiz
+        lfoRateSlider.draw(renderer);
+        lfoDepthSlider.draw(renderer);
+        lfoWaveSelector.draw(renderer);
+        lfoTargetSelector.draw(renderer);
+
+        // ADSR kontrollerini çiz
         attackSlider.draw(renderer);
         decaySlider.draw(renderer);
         sustainSlider.draw(renderer);
@@ -292,7 +331,7 @@ int main(int argc, char *argv[])
         SDL_RenderPresent(renderer);
 
         // Dalga animasyonu için fazı güncelle
-        displayPhase += TWO_PI * synth.frequency / SAMPLE_RATE * 256;
+        displayPhase += TWO_PI * synth.baseFrequency / SAMPLE_RATE * 256;
         if (displayPhase >= TWO_PI)
             displayPhase -= TWO_PI;
 
