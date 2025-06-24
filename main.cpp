@@ -262,38 +262,83 @@ int main(int argc, char *argv[])
                         synth.env.noteOn();
                     }
                 }
-                // UI kontrolleri
-                volumeSlider.handleEvent(event);
-                filterSlider.handleEvent(event);
-                waveSelector.handleEvent(event);
-
-                // LFO kontrolleri
-                lfoRateSlider.handleEvent(event);
-                lfoDepthSlider.handleEvent(event);
-                lfoWaveSelector.handleEvent(event);
-                lfoTargetSelector.handleEvent(event);
-
-                // ADSR kontrolleri
-                attackSlider.handleEvent(event);
-                decaySlider.handleEvent(event);
-                sustainSlider.handleEvent(event);
-                releaseSlider.handleEvent(event);
+                // UI kontrolleri - sadece ilk bulan handle etsin
+                if (volumeSlider.handleEvent(event))
+                {
+                }
+                else if (filterSlider.handleEvent(event))
+                {
+                }
+                else if (waveSelector.handleEvent(event))
+                {
+                }
+                else if (lfoRateSlider.handleEvent(event))
+                {
+                }
+                else if (lfoDepthSlider.handleEvent(event))
+                {
+                }
+                else if (lfoWaveSelector.handleEvent(event))
+                {
+                }
+                else if (lfoTargetSelector.handleEvent(event))
+                {
+                }
+                else if (attackSlider.handleEvent(event))
+                {
+                }
+                else if (decaySlider.handleEvent(event))
+                {
+                }
+                else if (sustainSlider.handleEvent(event))
+                {
+                }
+                else if (releaseSlider.handleEvent(event))
+                {
+                }
             }
             if (event.type == SDL_MOUSEBUTTONUP)
             {
                 activeKey = -1;
                 synth.env.noteOff();
+
+                // Tüm slider'ları durdur
+                volumeSlider.dragging = false;
+                filterSlider.dragging = false;
+                lfoRateSlider.dragging = false;
+                lfoDepthSlider.dragging = false;
+                attackSlider.dragging = false;
+                decaySlider.dragging = false;
+                sustainSlider.dragging = false;
+                releaseSlider.dragging = false;
             }
             if (event.type == SDL_MOUSEMOTION)
             {
-                volumeSlider.handleEvent(event);
-                filterSlider.handleEvent(event);
-                lfoRateSlider.handleEvent(event);
-                lfoDepthSlider.handleEvent(event);
-                attackSlider.handleEvent(event);
-                decaySlider.handleEvent(event);
-                sustainSlider.handleEvent(event);
-                releaseSlider.handleEvent(event);
+                // Mouse motion için sadece dragging olan slider'lar için
+                if (volumeSlider.handleEvent(event))
+                {
+                }
+                else if (filterSlider.handleEvent(event))
+                {
+                }
+                else if (lfoRateSlider.handleEvent(event))
+                {
+                }
+                else if (lfoDepthSlider.handleEvent(event))
+                {
+                }
+                else if (attackSlider.handleEvent(event))
+                {
+                }
+                else if (decaySlider.handleEvent(event))
+                {
+                }
+                else if (sustainSlider.handleEvent(event))
+                {
+                }
+                else if (releaseSlider.handleEvent(event))
+                {
+                }
             }
         }
 

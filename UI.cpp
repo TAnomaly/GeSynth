@@ -69,14 +69,11 @@ void Slider::draw(SDL_Renderer *renderer) const
 
 bool Slider::handleEvent(const SDL_Event &event)
 {
-    static Slider *activeSlider = nullptr; // Global aktif slider takibi
-
     if (event.type == SDL_MOUSEBUTTONDOWN)
     {
         int mx = event.button.x, my = event.button.y;
         if (mx >= x && mx < x + w && my >= y && my < y + h)
         {
-            activeSlider = this; // Bu slider'ı aktif yap
             dragging = true;
             // Mouse pozisyonuna göre hemen değeri güncelle
             int newValue = min + (mx - x) * (max - min) / w;
@@ -87,21 +84,20 @@ bool Slider::handleEvent(const SDL_Event &event)
             value = newValue;
             return true;
         }
+        return false;
     }
     else if (event.type == SDL_MOUSEBUTTONUP)
     {
-        // Sadece bu slider aktif ve dragging durumundaysa kapat
-        if (activeSlider == this && dragging)
+        if (dragging)
         {
             dragging = false;
-            activeSlider = nullptr; // Aktif slider'ı temizle
             return true;
         }
+        return false;
     }
     else if (event.type == SDL_MOUSEMOTION)
     {
-        // Sadece bu slider aktif durumda ise hareket takibi yap
-        if (activeSlider == this && dragging)
+        if (dragging)
         {
             int mx = event.motion.x;
             int newValue = min + (mx - x) * (max - min) / w;
@@ -112,6 +108,7 @@ bool Slider::handleEvent(const SDL_Event &event)
             value = newValue;
             return true;
         }
+        return false;
     }
     return false;
 }
