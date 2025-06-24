@@ -34,62 +34,103 @@ int audioCallback(const void *, void *outputBuffer, unsigned long framesPerBuffe
 
 void drawControlLabel(SDL_Renderer *renderer, int x, int y, const std::string &label)
 {
-    // Label arka planı
-    int labelWidth = label.length() * 8 + 10;
-    SDL_Rect labelBg = {x, y, labelWidth, 20};
-    SDL_SetRenderDrawColor(renderer, 30, 30, 40, 255);
+    // Futuristic neon label with HUD styling
+    int labelWidth = label.length() * 8 + 16;
+    SDL_Rect labelBg = {x - 8, y - 2, labelWidth, 24};
+
+    // Multi-layer depth effect
+    for (int i = 3; i >= 0; i--)
+    {
+        SDL_Rect depthRect = {labelBg.x + i, labelBg.y + i, labelBg.w - i * 2, labelBg.h - i * 2};
+        int alpha = 40 - i * 8;
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+        SDL_RenderFillRect(renderer, &depthRect);
+    }
+
+    // Main HUD background
+    SDL_SetRenderDrawColor(renderer, 8, 12, 20, 235);
     SDL_RenderFillRect(renderer, &labelBg);
-    SDL_SetRenderDrawColor(renderer, 100, 100, 120, 255);
+
+    // Neon border
+    SDL_SetRenderDrawColor(renderer, 0, 180, 255, 180);
     SDL_RenderDrawRect(renderer, &labelBg);
 
-    // Basit text simulasyonu (pixel art style)
-    // Her harf için küçük rectangle'lar
-    SDL_SetRenderDrawColor(renderer, 200, 200, 220, 255);
-    for (int i = 0; i < (int)label.length() && i < 20; i++)
-    {
-        char c = label[i];
-        int charX = x + 5 + i * 8;
+    // Corner accents
+    SDL_SetRenderDrawColor(renderer, 0, 255, 200, 255);
+    // Top-left corner
+    SDL_RenderDrawLine(renderer, labelBg.x, labelBg.y, labelBg.x + 6, labelBg.y);
+    SDL_RenderDrawLine(renderer, labelBg.x, labelBg.y, labelBg.x, labelBg.y + 6);
+    // Top-right corner
+    SDL_RenderDrawLine(renderer, labelBg.x + labelBg.w - 6, labelBg.y,
+                       labelBg.x + labelBg.w, labelBg.y);
+    SDL_RenderDrawLine(renderer, labelBg.x + labelBg.w, labelBg.y,
+                       labelBg.x + labelBg.w, labelBg.y + 6);
 
-        // Basit karakter patterns
-        if (c >= 'A' && c <= 'Z')
+    // Inner holographic glow
+    SDL_Rect innerGlow = {labelBg.x + 2, labelBg.y + 2, labelBg.w - 4, 4};
+    SDL_SetRenderDrawColor(renderer, 100, 200, 255, 60);
+    SDL_RenderFillRect(renderer, &innerGlow);
+
+    // Enhanced neon text - double layer
+    for (int layer = 1; layer >= 0; layer--)
+    {
+        SDL_Color textColor = layer == 0 ? SDL_Color{255, 255, 255, 255} : // Core white
+                                  SDL_Color{0, 220, 255, 150};             // Cyan glow
+
+        SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b, textColor.a);
+
+        for (int i = 0; i < (int)label.length(); i++)
         {
-            // Büyük harf - 3 nokta dikey
-            SDL_Rect dots[3] = {
-                {charX, y + 5, 2, 2},
-                {charX, y + 8, 2, 2},
-                {charX, y + 11, 2, 2}};
-            for (int j = 0; j < 3; j++)
+            char c = label[i];
+            int charX = x + i * 8 - layer;
+            int charY = y + 6 - layer;
+
+            // Enhanced character rendering
+            if (c >= 'A' && c <= 'Z')
             {
-                SDL_RenderFillRect(renderer, &dots[j]);
+                // Capital letter - tech style bars
+                SDL_Rect bars[4] = {
+                    {charX, charY, 6, 1},     // Top
+                    {charX, charY + 4, 4, 1}, // Middle
+                    {charX, charY + 8, 6, 1}, // Bottom
+                    {charX, charY, 1, 8}      // Left vertical
+                };
+                for (int j = 0; j < 4; j++)
+                {
+                    SDL_RenderFillRect(renderer, &bars[j]);
+                }
             }
-        }
-        else if (c >= 'a' && c <= 'z')
-        {
-            // Küçük harf - 2 nokta dikey
-            SDL_Rect dots[2] = {
-                {charX, y + 7, 2, 2},
-                {charX, y + 10, 2, 2}};
-            for (int j = 0; j < 2; j++)
+            else if (c >= 'a' && c <= 'z')
             {
-                SDL_RenderFillRect(renderer, &dots[j]);
+                // Lowercase - smaller pattern
+                SDL_Rect dots[3] = {
+                    {charX, charY + 2, 4, 1},
+                    {charX, charY + 5, 4, 1},
+                    {charX, charY + 8, 4, 1}};
+                for (int j = 0; j < 3; j++)
+                {
+                    SDL_RenderFillRect(renderer, &dots[j]);
+                }
             }
-        }
-        else if (c >= '0' && c <= '9')
-        {
-            // Sayı - tek nokta
-            SDL_Rect dot = {charX, y + 8, 2, 2};
-            SDL_RenderFillRect(renderer, &dot);
-        }
-        else if (c == ' ')
-        {
-            // Boşluk - hiçbir şey çizme
-            continue;
-        }
-        else
-        {
-            // Diğer karakterler - çizgi
-            SDL_Rect line = {charX, y + 9, 4, 1};
-            SDL_RenderFillRect(renderer, &line);
+            else if (c >= '0' && c <= '9')
+            {
+                // Numbers - digital style
+                SDL_Rect digit = {charX, charY + 3, 5, 5};
+                SDL_RenderDrawRect(renderer, &digit);
+                SDL_Rect center = {charX + 2, charY + 5, 1, 1};
+                SDL_RenderFillRect(renderer, &center);
+            }
+            else if (c == ' ')
+            {
+                // Space - skip
+                continue;
+            }
+            else
+            {
+                // Special characters - dash
+                SDL_Rect dash = {charX, charY + 4, 5, 1};
+                SDL_RenderFillRect(renderer, &dash);
+            }
         }
     }
 }
@@ -366,25 +407,91 @@ int main(int argc, char *argv[])
         synth.lfo.target = lfoTargetSelector.currentTarget;
         synth.lfo.enabled = (synth.lfo.target != LFOTarget::None);
 
-        // Modern gradient background
-        SDL_SetRenderDrawColor(renderer, 25, 25, 35, 255);
-        SDL_RenderClear(renderer);
+        // Futuristic dark gradient background
+        for (int y = 0; y < WINDOW_HEIGHT; y++)
+        {
+            float ratio = (float)y / WINDOW_HEIGHT;
+            int r = 5 + (15 - 5) * ratio;   // 5 to 15
+            int g = 10 + (25 - 10) * ratio; // 10 to 25
+            int b = 20 + (40 - 20) * ratio; // 20 to 40
+
+            SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+            SDL_RenderDrawLine(renderer, 0, y, WINDOW_WIDTH, y);
+        }
+
+        // Ambient glow effects
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+
+        // Top ambient light
+        for (int i = 0; i < 30; i++)
+        {
+            int alpha = 10 - i / 3;
+            if (alpha > 0)
+            {
+                SDL_SetRenderDrawColor(renderer, 0, 20, 40, alpha);
+                SDL_RenderDrawLine(renderer, 0, i, WINDOW_WIDTH, i);
+            }
+        }
+
+        // Subtle grid pattern for sci-fi look
+        SDL_SetRenderDrawColor(renderer, 0, 50, 100, 15);
+        for (int x = 0; x < WINDOW_WIDTH; x += 50)
+        {
+            SDL_RenderDrawLine(renderer, x, 0, x, WINDOW_HEIGHT);
+        }
+        for (int y = 0; y < WINDOW_HEIGHT; y += 50)
+        {
+            SDL_RenderDrawLine(renderer, 0, y, WINDOW_WIDTH, y);
+        }
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
         // Waveform visualization area
         int waveAreaY = 180; // Label'lar için daha fazla yer bırakıyoruz
         int waveAreaHeight = pianoY - waveAreaY - 10;
 
-        // Waveform background
+        // Enhanced waveform display with modern styling
         SDL_Rect waveBackground = {margin, waveAreaY, WINDOW_WIDTH - (margin * 2), waveAreaHeight};
-        SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
+
+        // Waveform container with depth
+        for (int i = 5; i >= 0; i--)
+        {
+            SDL_Rect depthRect = {waveBackground.x + i, waveBackground.y + i,
+                                  waveBackground.w - i * 2, waveBackground.h - i * 2};
+            int alpha = 40 - i * 5;
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+            SDL_RenderFillRect(renderer, &depthRect);
+        }
+
+        // Main waveform background with gradient
+        SDL_SetRenderDrawColor(renderer, 15, 20, 30, 240);
         SDL_RenderFillRect(renderer, &waveBackground);
-        SDL_SetRenderDrawColor(renderer, 80, 80, 90, 255);
+
+        // Inner glow
+        SDL_Rect innerGlow = {waveBackground.x + 2, waveBackground.y + 2,
+                              waveBackground.w - 4, waveBackground.h - 4};
+        SDL_SetRenderDrawColor(renderer, 0, 30, 60, 30);
+        SDL_RenderFillRect(renderer, &innerGlow);
+
+        // Tech border
+        SDL_SetRenderDrawColor(renderer, 0, 100, 150, 180);
         SDL_RenderDrawRect(renderer, &waveBackground);
 
-        // Dalga şekli çiz (ortada)
+        // Corner accents
+        SDL_SetRenderDrawColor(renderer, 0, 200, 255, 255);
+        SDL_RenderDrawLine(renderer, waveBackground.x, waveBackground.y,
+                           waveBackground.x + 10, waveBackground.y);
+        SDL_RenderDrawLine(renderer, waveBackground.x, waveBackground.y,
+                           waveBackground.x, waveBackground.y + 10);
+        SDL_RenderDrawLine(renderer, waveBackground.x + waveBackground.w - 10, waveBackground.y,
+                           waveBackground.x + waveBackground.w, waveBackground.y);
+        SDL_RenderDrawLine(renderer, waveBackground.x + waveBackground.w, waveBackground.y,
+                           waveBackground.x + waveBackground.w, waveBackground.y + 10);
+
+        // Enhanced waveform visualization
         WaveForm::draw(renderer, synth.waveType, synth.baseFrequency, displayPhase,
-                       waveBackground.x + 5, waveBackground.y + 5,
-                       waveBackground.w - 10, waveBackground.h - 10);
+                       waveBackground.x + 8, waveBackground.y + 8,
+                       waveBackground.w - 16, waveBackground.h - 16);
 
         // Frekans barını kaldırıyoruz, gerekirse daha sonra ekleriz
 
